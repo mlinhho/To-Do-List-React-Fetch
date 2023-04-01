@@ -1,50 +1,107 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-//create your first component
+
+// create your first component
 const Home = () => {
-  function _handleKeyDown(e) {
-    if (e.key === "Enter") {
-      setTodos(toDos.concat([inputValue]));
-      setInputValue("");
-    }
-  }
   const [inputValue, setInputValue] = useState("");
-  const [toDos, setTodos] = useState([]);
-  const [isShown, setIsShown] = useState(false);
+  
+  const [todos, setTodos] = useState([{
+    label: "anyString",
+    done: false,
+  }, {
+    label: "anyString",
+    done: true,
+  }]);
+  
+  function updateToDosOnAPI() {
+    fetch('https://assets.breatheco.de/apis/fake/todos/user/mlinhho', {
+      method: "PUT",
+      body: JSON.stringify([
+        ...todos
+      ]),
+      headers:{
+        "Content-Type":"application/json"
+      },
+    })
+    .then(response => {
+      console.log(response.ok); // will be true if the response is successfull
+      console.log(response.status); // the status code = 200 or code = 400 etc.
+      if (response.ok!=true) throw new Error ("response is not ok", response.status);
+       // (returns promise) will try to parse the result as json as return a promise that you can .then for results
+    })
+    .catch(error => {
+      //error handling
+      console.log(error);
+    });
+  }
+  
+  function getToDosFromAPI(){
+    fetch('https://assets.breatheco.de/apis/fake/todos/user/mlinhho', {
+      method: "GET",
+    })
+    .then(response => {
+        console.log(response.ok); // will be true if the response is successfull
+        console.log(response.status); // the status code = 200 or code = 400 etc.
+        if (response.ok!=true) throw new Error ("response is not ok", response.status);
+        return response.json(); // (returns promise) will try to parse the result as json as return a promise that you can .then for results
+    })
+    .then(toDosFromAPI => {
+        //here is were your code should start after the fetch finishes
+        setTodos(toDosFromAPI);
+        console.log(toDosFromAPI); //this will print on the console the exact object received from the server
+    })
+    .catch(error => {
+        //error handling
+        console.log(error);
+    });
+  }
+  
+  useEffect(() => {
+    getToDosFromAPI()
+  },[]);
+
+  useEffect(() => {
+    updateToDosOnAPI()
+    console.log(todos)
+  },[todos]);
+
   return (
-    <div className="text-center">
-      <h1 className="text-center">TODOS</h1>
-      <div className="notePad">
-        <ul className="w-100">
-          <li>
-            <input
-              type="text"
-              id="addToDo"
-              placeholder="Add task"
-              onKeyDown={_handleKeyDown}
-              onChange={(e) => setInputValue(e.target.value)}
-              value={inputValue}
-            />
+    <div className="container">
+      <h1>To Do List</h1>
+      <ul>
+        <li>
+          <input
+            type="text"
+            onChange={(e) => setInputValue(e.target.value)}
+            value={inputValue}
+            onKeyUp={(e) => {
+              if (e.key === "Enter") {
+                setTodos(todos.concat({
+                  "label":inputValue,
+                  "done":false,
+                }));
+                setInputValue("");
+              }
+            }}
+            placeholder="Add items here..."
+          ></input>
+        </li>
+        {todos.map((item, index) => (
+          <li key={index}>
+            {item.label}{" "}
+            <i
+              className="fas fa-trash-alt"
+              onClick={() =>
+                setTodos(
+                  todos.filter((t, currentIndex) => index != currentIndex)
+                )
+              }
+            ></i>
           </li>
-
-          {toDos.map((item, index) => (
-            <li
-              onMouseEnter={() => setIsShown(true)}
-              onMouseLeave={() => setIsShown(false)}
-              className="w-100 d-flex"
-            >
-              <p className="w-auto">{item}</p>
-              {isShown === true ? (
-                <i className="fa-solid fa-xmark ms-auto"></i>
-                ) : (
-                ""
-              )}
-            </li>
-          ))}
-        </ul>
-
-        <div> {toDos.length} item left</div>
-      </div>
+          
+        ))}
+      </ul>
+      <div>{todos.length} Tasks</div>
     </div>
   );
 };
